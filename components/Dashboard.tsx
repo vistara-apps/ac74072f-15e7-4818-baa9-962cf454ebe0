@@ -10,22 +10,96 @@ import { NotificationBanner } from './NotificationBanner';
 import { ResourceCard } from './ResourceCard';
 import { EfficiencyChart } from './EfficiencyChart';
 import { TaskList } from './TaskList';
-import { mockDashboardData, mockUsers, mockProjects, mockEfficiencyMetrics, mockTimeSeriesData } from '@/lib/mockData';
 import { formatNumber, formatPercentage } from '@/lib/utils';
 import { Activity, BarChart3, Users, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { DashboardData, User, EfficiencyMetrics, TimeSeriesData } from '@/lib/types';
 
 export function Dashboard() {
   const { context } = useMiniKit();
-  const [dashboardData, setDashboardData] = useState(mockDashboardData);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [efficiencyMetrics, setEfficiencyMetrics] = useState<EfficiencyMetrics[]>([]);
+  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-    return () => clearTimeout(timer);
+        // Fetch dashboard analytics
+        const analyticsResponse = await fetch('/api/analytics?type=dashboard');
+        if (!analyticsResponse.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        const analyticsData = await analyticsResponse.json();
+        setDashboardData(analyticsData);
+
+        // Fetch users
+        const usersResponse = await fetch('/api/users');
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json();
+          setUsers(usersData);
+        }
+
+        // Mock efficiency metrics and time series for now
+        // In production, these would come from the analytics API
+        setEfficiencyMetrics([
+          {
+            userId: '1',
+            score: 88,
+            tasksCompleted: 12,
+            averageCompletionTime: 6.5,
+            utilizationRate: 85,
+            trend: 'up'
+          },
+          {
+            userId: '2',
+            score: 92,
+            tasksCompleted: 18,
+            averageCompletionTime: 5.2,
+            utilizationRate: 95,
+            trend: 'up'
+          },
+          {
+            userId: '3',
+            score: 76,
+            tasksCompleted: 8,
+            averageCompletionTime: 8.1,
+            utilizationRate: 70,
+            trend: 'stable'
+          }
+        ]);
+
+        setTimeSeriesData([
+          { date: '2024-01-01', value: 78 },
+          { date: '2024-01-02', value: 82 },
+          { date: '2024-01-03', value: 85 },
+          { date: '2024-01-04', value: 79 },
+          { date: '2024-01-05', value: 88 },
+          { date: '2024-01-06', value: 91 },
+          { date: '2024-01-07', value: 85 },
+          { date: '2024-01-08', value: 89 },
+          { date: '2024-01-09', value: 93 },
+          { date: '2024-01-10', value: 87 },
+          { date: '2024-01-11', value: 90 },
+          { date: '2024-01-12', value: 94 },
+          { date: '2024-01-13', value: 88 },
+          { date: '2024-01-14', value: 92 },
+          { date: '2024-01-15', value: 95 }
+        ]);
+
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
   if (isLoading) {
@@ -38,6 +112,30 @@ export function Dashboard() {
     );
   }
 
+  if (error || !dashboardData) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+            <h2 className="text-lg font-bold text-dashboard-text mb-2">Failed to Load Dashboard</h2>
+            <p className="text-dashboard-textSecondary mb-4">
+              {error || 'Unable to load dashboard data. Please try again.'}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-dashboard-accent text-white px-4 py-2 rounded-lg hover:bg-dashboard-accent/90 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const currentUser = users.find(user => user.farcasterId === context?.user?.fid?.toString());
+  const userName = currentUser?.name || 'User';
   const completionRate = (dashboardData.completedTasks / dashboardData.totalTasks) * 100;
 
   return (
@@ -210,7 +308,7 @@ export function Dashboard() {
                   View All
                 </button>
               </div>
-              <TaskList />
+              <TaskList showControls={true} />
             </DashboardCard>
           </div>
 
