@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useMiniKit } from '@coinbase/minikit';
+// import { useMiniKit } from '@coinbase/onchainkit';
 import { AppShell } from './AppShell';
 import { DashboardCard } from './DashboardCard';
 import { ProgressBar } from './ProgressBar';
@@ -15,7 +15,7 @@ import { formatNumber, formatPercentage } from '@/lib/utils';
 import { Activity, BarChart3, Users, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
 
 export function Dashboard() {
-  const { context } = useMiniKit();
+  // const { context } = useMiniKit();
   const [dashboardData, setDashboardData] = useState(mockDashboardData);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,7 +47,7 @@ export function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-dashboard-text">
-              Welcome back, {context?.user?.displayName || 'Team Lead'}
+              Welcome back, Team Lead
             </h1>
             <p className="text-dashboard-textSecondary mt-1">
               Here's what's happening with your team today
