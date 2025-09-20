@@ -1,0 +1,30 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "frame": {
+    "version": "1",
+    "name": "FlowMetric",
+    "subtitle": "Built with Zara",
+    "description": "FlowMetric is a Base Mini App built with Zara.",
+    "iconUrl": "https://0co.to/images/zara-2.png",
+    "homeUrl": "https://ac74072f15e74818baa9962cf454ebe0-0gg5.vercel.app",
+    "splashImageUrl": "https://ac74072f15e74818baa9962cf454ebe0-0gg5.vercel.app/splash.png",
+    "splashBackgroundColor": "#000000",
+    "heroImageUrl": "https://ac74072f15e74818baa9962cf454ebe0-0gg5.vercel.app/image.png",
+    "tagline": "FlowMetric",
+    "screenshotUrls": [
+      "https://ac74072f15e74818baa9962cf454ebe0-0gg5.vercel.app/screenshot.png",
+      "https://ac74072f15e74818baa9962cf454ebe0-0gg5.vercel.app/screenshot.png"
+    ],
+    "primaryCategory": "social",
+    "tags": [
+      "base",
+      "miniapp",
+      "onchainkit"
+    ],
+    "webhookUrl": "https://ac74072f15e74818baa9962cf454ebe0-0gg5.vercel.app/api/webhook"
+  }
+}
