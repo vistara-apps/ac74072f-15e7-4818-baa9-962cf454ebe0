@@ -1,88 +1,141 @@
 'use client';
 
-import { mockTasks, mockUsers, mockProjects } from '@/lib/mockData';
-import { StatusBadge } from './StatusBadge';
-import { formatTime } from '@/lib/utils';
-import { Clock, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Task, User, Project } from '@/lib/types';
+import { TaskCard } from './TaskCard';
 
-export function TaskList() {
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'completed';
-      case 'in-progress':
-        return 'active';
-      case 'blocked':
-        return 'delayed';
-      default:
-        return 'idle';
+interface TaskListProps {
+  limit?: number;
+  userId?: string;
+  projectId?: string;
+  showControls?: boolean;
+}
+
+export function TaskList({ limit, userId, projectId, showControls = false }: TaskListProps) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', userId);
+        if (projectId) params.append('projectId', projectId);
+
+        const tasksResponse = await fetch(`/api/tasks?${params}`);
+        if (!tasksResponse.ok) {
+          throw new Error('Failed to fetch tasks');
+        }
+        const tasksData = await tasksResponse.json();
+
+        // Fetch users and projects for enrichment
+        const [usersResponse, projectsResponse] = await Promise.all([
+          fetch('/api/users'),
+          fetch('/api/projects')
+        ]);
+
+        const usersData = usersResponse.ok ? await usersResponse.json() : [];
+        const projectsData = projectsResponse.ok ? await projectsResponse.json() : [];
+
+        setTasks(limit ? tasksData.slice(0, limit) : tasksData);
+        setUsers(usersData);
+        setProjects(projectsData);
+
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load tasks');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [limit, userId, projectId]);
+
+  const handleStatusUpdate = async (taskId: string, newStatus: Task['status']) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task status');
+      }
+
+      const updatedTask = await response.json();
+
+      // Update local state
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.taskId === taskId ? updatedTask : task
+        )
+      );
+
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      throw err; // Re-throw to let TaskCard handle the error
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="w-4 h-4" />;
-      case 'blocked':
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: limit || 5 }).map((_, i) => (
+          <div key={i} className="p-4 bg-dashboard-surface rounded-lg animate-pulse">
+            <div className="h-4 bg-dashboard-bg rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-dashboard-bg rounded w-1/2"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-dashboard-textSecondary mb-4">Failed to load tasks</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-dashboard-accent hover:underline"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-dashboard-textSecondary">No tasks found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
-      {mockTasks.map((task) => {
-        const user = mockUsers.find(u => u.userId === task.assignedUserId);
-        const project = mockProjects.find(p => p.projectId === task.projectId);
-        
-        return (
-          <div
-            key={task.taskId}
-            className="p-4 bg-dashboard-bg rounded-lg border border-gray-700 hover:border-dashboard-accent transition-colors duration-200"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h4 className="text-dashboard-text font-medium mb-1">
-                  {task.description}
-                </h4>
-                <p className="text-dashboard-textSecondary text-sm">
-                  {project?.projectName}
-                </p>
-              </div>
-              <StatusBadge variant={getStatusVariant(task.status)}>
-                <div className="flex items-center space-x-1">
-                  {getStatusIcon(task.status)}
-                  <span className="capitalize">{task.status.replace('-', ' ')}</span>
-                </div>
-              </StatusBadge>
-            </div>
+      {tasks.map((task) => {
+        const user = users.find(u => u.userId === task.assignedUserId);
+        const project = projects.find(p => p.projectId === task.projectId);
 
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-1">
-                  <User className="w-3 h-3 text-dashboard-textSecondary" />
-                  <span className="text-dashboard-textSecondary">{user?.name}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Clock className="w-3 h-3 text-dashboard-textSecondary" />
-                  <span className="text-dashboard-textSecondary">
-                    {task.actualEffort || task.estimatedEffort}h
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <span className={`px-2 py-1 rounded text-xs ${
-                  task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                  task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-green-500/20 text-green-400'
-                }`}>
-                  {task.priority}
-                </span>
-              </div>
-            </div>
-          </div>
+        return (
+          <TaskCard
+            key={task.taskId}
+            task={task}
+            user={user}
+            project={project}
+            onStatusUpdate={showControls ? handleStatusUpdate : undefined}
+            compact
+          />
         );
       })}
     </div>
